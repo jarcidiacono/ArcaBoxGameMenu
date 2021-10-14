@@ -40,3 +40,6 @@ Borne/sysinfo.txt
 # Games and videos
 Borne/Games/*
 Borne/Videos/*
+
+# Documentations file in MS Word format
+*.docx
