@@ -35,3 +35,7 @@ Borne/sysinfo.txt
 # Builds
 *.apk
 *.unitypackage
+
+# Games and videos
+Borne/Games/*
+Borne/Videos/*
