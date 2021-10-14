@@ -1,3 +1,9 @@
+## File     : serv.py
+ # Autor    : Jérémie Arcidiacono
+ # Date     : October 2021
+ # Description: Raspberry that controls a 7-segment LED display. It waits for HTTP requests to know when to start and stop the timer that appears on the display
+##
+
 from flask import Flask, Response, request
 import board
 from adafruit_ht16k33.segments import BigSeg7x4
@@ -11,7 +17,7 @@ display = BigSeg7x4(i2c, address=0x70) # DON'T FORGET to change the address, it 
 # Init Flask web server
 app = Flask(__name__)
 
-DEFAULT_TIME = [0,0,1,0] # The time allowed to each player (formats : mm:ss = [m, m, s, s]
+DEFAULT_TIME = [0,2,0,0] # The time allowed to each player (formats : mm:ss = [m, m, s, s]
 
 time = Array('i', DEFAULT_TIME)
 timerStatus = Value('i', 0)
