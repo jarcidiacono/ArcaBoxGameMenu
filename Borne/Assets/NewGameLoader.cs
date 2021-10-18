@@ -5,15 +5,14 @@
 // Assembly location: F:\Menu\ArcaBoxGameMenu_Data\Managed\Assembly-CSharp.dll
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Configuration;
 
 public class NewGameLoader : MonoBehaviour
 {
@@ -24,8 +23,7 @@ public class NewGameLoader : MonoBehaviour
     public AudioSource audioSource;
     public Text errorText;
     private Sprite DEFAULT_IMG;
-    private const string GAME_DIRECTORY = "./Games/";
-    private const string VIDEO_DIRECTORY = "./Videos/";
+    private string GAME_DIRECTORY;
     private static List<string> SUPPORTED_IMAGE_TYPES = new List<string>()
       {
         ".jpg",
@@ -37,12 +35,18 @@ public class NewGameLoader : MonoBehaviour
 
     private Process currentGameApp; // Contains the game that is active (if there is one)
 
-    #region Raspberry Timer
+    #region Timer
+    private bool RASPBERRY_ENABLED;
+    private string RASPBERRY_URL;
+    private System.Timers.Timer timer;
+    private int nbSeconds = 10;
+    #endregion Timer
 
-    // Timer raspberry with physical 7-segment
-    private string raspberryURL = "http://10.5.42.89:80";
-
-    #endregion Raspberry Timer
+    #region Video
+    private bool VIDEO_ENABLED;
+    private string VIDEO_DIRECTORY;
+    private string VLC_EXECUTABLE_PATH;
+    #endregion Video
 
     private void Start()
     {
@@ -51,22 +55,40 @@ public class NewGameLoader : MonoBehaviour
         this.Videos = new List<string>();
         this.Slides = GameObject.Find("Main Camera").GetComponent<SliderMenu>().Slides = new List<GameObject>();
         Cursor.visible = false;
+        this.LoadConfigurationVar(); // Get the variables defined in the "App.config" file
         this.LoadGames();
         this.LoadVideos();
-        //this.LoadConfigurationVar(); // Get the variables defined in the "App.config" file
+
+        if (VIDEO_ENABLED || RASPBERRY_ENABLED)
+        {
+            timer = new System.Timers.Timer();
+            timer.Enabled = false;
+            timer.Interval = (nbSeconds + 3) * 1000;
+            timer.Elapsed += Timer_ElapsedEvent;
+        }
+    }
+
+    private void Timer_ElapsedEvent(object sender, System.Timers.ElapsedEventArgs e)
+    {
+        currentGameApp.CloseMainWindow();
+        timer.Stop();
+        
     }
 
     private void Update()
     {
+        
         if (currentGameApp != null && currentGameApp.HasExited) // It append when the game is closing
         {
             currentGameApp = null;
-            setTimerStatus(false);
+            if(RASPBERRY_ENABLED)
+                setTimerStatus(false);
+            timer.Stop();
 
             // Lauch video
             Process currentVideoApp = new Process();
-            currentVideoApp.StartInfo.FileName = @"C:\Program Files\VideoLAN\VLC\vlc.exe";
-            currentVideoApp.StartInfo.Arguments = @".\Videos\" + Videos[UnityEngine.Random.Range(0, Videos.Count)] + " --play-and-exit --fullscreen";
+            currentVideoApp.StartInfo.FileName = VLC_EXECUTABLE_PATH;
+            currentVideoApp.StartInfo.Arguments = VIDEO_DIRECTORY + Videos[UnityEngine.Random.Range(0, Videos.Count)] + " --play-and-exit --fullscreen";
             //Process.Start(@"videos\shoot_2.mp4");
             currentVideoApp.Start();
         }
@@ -89,13 +111,15 @@ public class NewGameLoader : MonoBehaviour
                 currentGameApp.StartInfo.FileName = str;
                 currentGameApp.Start();
                 setTimerStatus(true);
+                timer.Start();
+                //System.Threading.Timer timer = new System.Threading.Timer(new System.Threading.TimerCallback(new System.Object()));
             }
             else
-                this.DisplayError("Le fichier .exe n'a pas été trouvé", 1f);
+                this.DisplayError("Le fichier .exe n'a pas été trouvé", 2f);
         }
         catch
         {
-            this.DisplayError("Le dossier du jeu est introuvable", 1f);
+            this.DisplayError("Le dossier du jeu est introuvable", 2f);
         }
     }
 
@@ -117,7 +141,7 @@ public class NewGameLoader : MonoBehaviour
 
     private void LoadGames()
     {
-        foreach (DirectoryInfo directory in new DirectoryInfo("./Games/").GetDirectories())
+        foreach (DirectoryInfo directory in new DirectoryInfo(GAME_DIRECTORY).GetDirectories())
             this.Games.Add(directory.Name, directory.FullName);
         foreach (KeyValuePair<string, string> game in this.Games)
         {
@@ -174,13 +198,28 @@ public class NewGameLoader : MonoBehaviour
             strStatus = "stop";
 
         WebRequest wrGETURL;
-        wrGETURL = WebRequest.Create(raspberryURL + "/timerStatus?a=" + strStatus);
+        wrGETURL = WebRequest.Create(RASPBERRY_URL + "/timerStatus?a=" + strStatus);
         wrGETURL.GetResponse();
     }
 
-    //private void LoadConfigurationVar()
-    //{
-    //    raspberryURL = "";
-    //    raspberryURL = ConfigurationManager.AppSettings.Get("RASPBERRRY_URL");
-    //}
+    private void LoadConfigurationVar()
+    {
+        string[] lines = File.ReadAllLines("./App.config"); 
+        Dictionary<string, string> dictConfig = lines.Select(l => l.Split('=')).ToDictionary(a => a[0], a => a[1]);
+
+        GAME_DIRECTORY = dictConfig["GAME_DIRECTORY"];
+
+        RASPBERRY_ENABLED = (dictConfig["RASPBERRY_ENABLED"].ToLower() == "on" || dictConfig["RASPBERRY_ENABLED"].ToLower() == "true") ? true : false;
+        if (RASPBERRY_ENABLED)
+        {
+            RASPBERRY_URL = dictConfig["RASPBERRY_URL"];
+        }
+
+        VIDEO_ENABLED = (dictConfig["VIDEO_ENABLED"].ToLower() == "on" || dictConfig["VIDEO_ENABLED"].ToLower() == "true") ? true : false;
+        if (RASPBERRY_ENABLED)
+        {
+            VIDEO_DIRECTORY = dictConfig["VIDEO_DIRECTORY"];
+            VLC_EXECUTABLE_PATH = dictConfig["VLC_EXECUTABLE_PATH"];
+        }
+    }
 }
