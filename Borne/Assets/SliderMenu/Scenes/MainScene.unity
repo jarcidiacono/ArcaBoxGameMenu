@@ -1640,7 +1640,6 @@ GameObject:
   - component: {fileID: 1973214474}
   - component: {fileID: 1973214479}
   - component: {fileID: 1973214480}
-  - component: {fileID: 1973214476}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1664,24 +1663,6 @@ Behaviour:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1973214473}
   m_Enabled: 1
---- !u!114 &1973214476
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1973214473}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d3b94793eb58c442b68016a24ee5a9e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  btnLeft: {fileID: 945229961}
-  btnRight: {fileID: 1403712828}
-  slides: {fileID: 2022333420}
-  gameExample: {fileID: 100666108}
-  audioSource: {fileID: 2011496173}
-  errorText: {fileID: 690934386}
 --- !u!20 &1973214477
 Camera:
   m_ObjectHideFlags: 0
@@ -1851,9 +1832,9 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1973214473}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7298d4e21208fcc4cac77468c5a0646f, type: 3}
+  m_Script: {fileID: 11500000, guid: 226b71197bb04c847aab0f40818a07d0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   btnLeft: {fileID: 945229961}
@@ -1861,6 +1842,7 @@ MonoBehaviour:
   slides: {fileID: 2022333420}
   gameExample: {fileID: 100666108}
   audioSource: {fileID: 2011496173}
+  errorText: {fileID: 690934386}
 --- !u!1 &2011496172
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,9 +1,10 @@
-﻿// Decompiled with JetBrains decompiler
-// Type: GameLoader
-// Assembly: Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-// MVID: 38147E8E-80C5-4F37-B26A-9756989EB72D
-// Assembly location: F:\Menu\ArcaBoxGameMenu_Data\Managed\Assembly-CSharp.dll
-
+﻿/*
+ * File        : GameLoader.cs
+ * Autor V1    : unknown (CFPTi TechnicienES ?)
+ * Autor V2    : Jérémie Arcidiacono
+ * Date        : October 2021
+ * Description : C# script for a Unity game launcher
+ */
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -14,7 +15,7 @@ using System.Net;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class NewGameLoader : MonoBehaviour
+public class GameLoader : MonoBehaviour
 {
     // Unity object
     public Button btnLeft;
@@ -65,7 +66,8 @@ public class NewGameLoader : MonoBehaviour
         this.Videos = new List<string>();
         this.Slides = GameObject.Find("Main Camera").GetComponent<SliderMenu>().Slides = new List<GameObject>();
         Cursor.visible = false;
-        this.LoadConfigurationVar(); // Get the variables defined in the "App.config" file
+        if (!this.LoadConfigurationVar()) // Get the variables defined in the "App.config" file
+            return;
         this.LoadGames();
         if (VIDEO_ENABLED)
             this.LoadVideos();
@@ -215,7 +217,7 @@ public class NewGameLoader : MonoBehaviour
             foreach (string path2 in files)
             {
                 string extension = Path.GetExtension(path2);
-                if (NewGameLoader.SUPPORTED_IMAGE_TYPES.Contains(extension))
+                if (GameLoader.SUPPORTED_IMAGE_TYPES.Contains(extension))
                     path1 = path2;
             }
             byte[] numArray = new byte[0];
@@ -288,7 +290,8 @@ public class NewGameLoader : MonoBehaviour
     /// <summary>
     ///  Read the content of the config file "App.config" and set all the app var
     /// </summary>
-    private void LoadConfigurationVar()
+    /// <returns>False if there was an error</returns>
+    private bool LoadConfigurationVar()
     {
         Dictionary<string, string> dictConfig;
         try
@@ -299,13 +302,13 @@ public class NewGameLoader : MonoBehaviour
         catch
         {
             this.DisplayError("Fichier de config introuvable ou illisible (ER:01)", 10f);
-            return;
+            return false;
         }
 
         if (dictConfig.Values.Contains(String.Empty)) // Check that all the variables are defined in the file
         {
             this.DisplayError("Valeur vide dans le fichier de config (ER:02)", 10f);
-            return;
+            return false;
         }
 
         GAME_DIRECTORY = dictConfig["GAME_DIRECTORY"];
@@ -333,6 +336,7 @@ public class NewGameLoader : MonoBehaviour
             RASPBERRY_ENABLED = false;
             VIDEO_ENABLED = false;
         }
+        return true;
     }
 
     /// <summary>
