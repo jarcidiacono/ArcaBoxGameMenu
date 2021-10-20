@@ -86,11 +86,20 @@ public class NewGameLoader : MonoBehaviour
             timer.Stop();
 
             // Lauch video
-            Process currentVideoApp = new Process();
-            currentVideoApp.StartInfo.FileName = VLC_EXECUTABLE_PATH;
-            currentVideoApp.StartInfo.Arguments = VIDEO_DIRECTORY + Videos[UnityEngine.Random.Range(0, Videos.Count)] + " --play-and-exit --fullscreen";
-            //Process.Start(@"videos\shoot_2.mp4");
-            currentVideoApp.Start();
+            if (VIDEO_ENABLED)
+            {
+                try
+                {
+                    Process currentVideoApp = new Process(); // Contains the video player process
+                    currentVideoApp.StartInfo.FileName = VLC_EXECUTABLE_PATH; // Use VLC media player to show the videos
+                    currentVideoApp.StartInfo.Arguments = VIDEO_DIRECTORY + Videos[UnityEngine.Random.Range(0, Videos.Count)] + " --play-and-exit --fullscreen"; // The 2 arguments are to put the video in full screen and to close the program automatically at the end of the video
+                    currentVideoApp.Start();
+                }
+                catch
+                {
+                    this.DisplayError("Lecture de la vidéo impossible (ER:03)", 2f);
+                }
+            }
         }
 
         if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
@@ -115,11 +124,11 @@ public class NewGameLoader : MonoBehaviour
                 //System.Threading.Timer timer = new System.Threading.Timer(new System.Threading.TimerCallback(new System.Object()));
             }
             else
-                this.DisplayError("Le fichier .exe n'a pas été trouvé", 2f);
+                this.DisplayError("Le fichier .exe n'a pas été trouvé (ER:04)", 2f);
         }
         catch
         {
-            this.DisplayError("Le dossier du jeu est introuvable", 2f);
+            this.DisplayError("Le dossier du jeu est introuvable (ER:05)", 2f);
         }
     }
 
@@ -141,8 +150,20 @@ public class NewGameLoader : MonoBehaviour
 
     private void LoadGames()
     {
-        foreach (DirectoryInfo directory in new DirectoryInfo(GAME_DIRECTORY).GetDirectories())
+        DirectoryInfo[] directoryInfo;
+        try
+        {
+            directoryInfo = new DirectoryInfo(GAME_DIRECTORY).GetDirectories();
+        }
+        catch
+        {
+            this.DisplayError("Jeux introuvables (ER:06)", 5f);
+            return;
+        }
+
+        foreach (DirectoryInfo directory in directoryInfo)
             this.Games.Add(directory.Name, directory.FullName);
+
         foreach (KeyValuePair<string, string> game in this.Games)
         {
             GameObject gameObject = UnityEngine.Object.Instantiate<GameObject>(this.gameExample, this.transform.position, this.transform.rotation);
@@ -185,7 +206,18 @@ public class NewGameLoader : MonoBehaviour
 
     private void LoadVideos()
     {
-        foreach (FileInfo files in new DirectoryInfo(VIDEO_DIRECTORY).GetFiles())
+        FileInfo[] directoryInfo;
+        try
+        {
+            directoryInfo = new DirectoryInfo(VIDEO_DIRECTORY).GetFiles();
+        }
+        catch
+        {
+            this.DisplayError("Vidéos introuvables (ER:07)", 5f);
+            return;
+        }
+
+        foreach (FileInfo files in directoryInfo)
             this.Videos.Add(files.Name);
     }
 
@@ -199,7 +231,14 @@ public class NewGameLoader : MonoBehaviour
 
         WebRequest wrGETURL;
         wrGETURL = WebRequest.Create(RASPBERRY_URL + "/timerStatus?a=" + strStatus);
-        wrGETURL.GetResponse();
+        try
+        {
+            wrGETURL.GetResponse();
+        }
+        catch
+        {
+            this.DisplayError("Communication avec le timer distant impossible (ER:08)", 3f);
+        }
     }
 
     /// <summary>
