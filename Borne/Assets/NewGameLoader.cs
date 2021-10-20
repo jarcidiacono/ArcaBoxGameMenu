@@ -16,6 +16,7 @@ using UnityEngine.UI;
 
 public class NewGameLoader : MonoBehaviour
 {
+    // Unity object
     public Button btnLeft;
     public Button btnRight;
     public GameObject slides;
@@ -23,24 +24,29 @@ public class NewGameLoader : MonoBehaviour
     public AudioSource audioSource;
     public Text errorText;
     private Sprite DEFAULT_IMG;
+
     private string GAME_DIRECTORY;
+
     private static List<string> SUPPORTED_IMAGE_TYPES = new List<string>()
       {
         ".jpg",
         ".png"
       };
+
     private Dictionary<string, string> Games;
     private List<string> Videos;
     private List<GameObject> Slides;
 
-    private Process currentGameApp; // Contains the game that is active (if there is one)
+    private Process currentGameApp = null; // Contains the game that is active (if there is one)
 
-    #region Timer
+    private bool TIMER_ENABLED;
+    private int NB_SECONDS;
+
+    #region Raspberry Display
     private bool RASPBERRY_ENABLED;
     private string RASPBERRY_URL;
     private System.Timers.Timer timer;
-    private int nbSeconds = 10;
-    #endregion Timer
+    #endregion Raspberry Display
 
     #region Video
     private bool VIDEO_ENABLED;
@@ -48,6 +54,10 @@ public class NewGameLoader : MonoBehaviour
     private string VLC_EXECUTABLE_PATH;
     #endregion Video
 
+    /// <summary>
+    ///  Initialize function
+    ///  Initialize the var, check the config, load and display the game.
+    /// </summary>
     private void Start()
     {
         this.DEFAULT_IMG = UnityEngine.Resources.Load<Sprite>("defaultImage");
@@ -57,33 +67,43 @@ public class NewGameLoader : MonoBehaviour
         Cursor.visible = false;
         this.LoadConfigurationVar(); // Get the variables defined in the "App.config" file
         this.LoadGames();
-        this.LoadVideos();
+        if (VIDEO_ENABLED)
+            this.LoadVideos();
 
-        if (VIDEO_ENABLED || RASPBERRY_ENABLED)
+        // Configure the timer
+        if (TIMER_ENABLED)
         {
             timer = new System.Timers.Timer();
             timer.Enabled = false;
-            timer.Interval = (nbSeconds + 3) * 1000;
+            timer.Interval = (NB_SECONDS + 3) * 1000; // +3 for do the action after the "end-of-time animation" of the raspberry display
             timer.Elapsed += Timer_ElapsedEvent;
         }
     }
 
+    /// <summary>
+    ///  Event that occurs when the time limit is reached
+    ///  It stops the game
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void Timer_ElapsedEvent(object sender, System.Timers.ElapsedEventArgs e)
     {
-        currentGameApp.CloseMainWindow();
+        currentGameApp.CloseMainWindow(); // Kill the game process
         timer.Stop();
-        
     }
 
+    /// <summary>
+    ///  Main function. Is executed at each frame
+    /// </summary>
     private void Update()
     {
-        
-        if (currentGameApp != null && currentGameApp.HasExited) // It append when the game is closing
+        if (currentGameApp != null && currentGameApp.HasExited) // It's true when the game is closing
         {
-            currentGameApp = null;
-            if(RASPBERRY_ENABLED)
-                setTimerStatus(false);
-            timer.Stop();
+            currentGameApp = null; //
+            if (RASPBERRY_ENABLED)
+                setTimerStatus(false); // Send a stop request to the raspberry display
+            if (TIMER_ENABLED)
+                timer.Stop();
 
             // Lauch video
             if (VIDEO_ENABLED)
@@ -106,7 +126,7 @@ public class NewGameLoader : MonoBehaviour
             this.btnLeft.onClick.Invoke();
         if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
             this.btnRight.onClick.Invoke();
-        if (!Input.GetKeyDown(KeyCode.Alpha8))
+        if (!Input.GetKeyDown(KeyCode.Alpha8)) // If the interaction button is not clicked, stop the function
             return;
         Transform child = this.slides.transform.GetChild(this.slides.transform.childCount - 1);
         try
@@ -115,13 +135,17 @@ public class NewGameLoader : MonoBehaviour
             this.audioSource.volume = 0.0f;
             if (files.Length != 0)
             {
-                string str = files[0];
-                currentGameApp = new Process();
-                currentGameApp.StartInfo.FileName = str;
-                currentGameApp.Start();
-                setTimerStatus(true);
-                timer.Start();
-                //System.Threading.Timer timer = new System.Threading.Timer(new System.Threading.TimerCallback(new System.Object()));
+                if (currentGameApp == null) // This condition prevents a game from being multiple several times by using the start button repeatedly.
+                {
+                    string str = files[0];
+                    currentGameApp = new Process();
+                    currentGameApp.StartInfo.FileName = str;
+                    currentGameApp.Start(); // Start the game
+                    if (TIMER_ENABLED)
+                        timer.Start();
+                    if (RASPBERRY_ENABLED)
+                        setTimerStatus(true);
+                }
             }
             else
                 this.DisplayError("Le fichier .exe n'a pas été trouvé (ER:04)", 2f);
@@ -132,6 +156,11 @@ public class NewGameLoader : MonoBehaviour
         }
     }
 
+    /// <summary>
+    ///  Display an error for the end-user
+    /// </summary>
+    /// <param name="text">The text to be displayed</param>
+    /// <param name="fadoutTime">The number of seconds before the message disappears.</param>
     private void DisplayError(string text, float fadoutTime)
     {
         if (!((System.Object)this.errorText != (System.Object)null))
@@ -141,6 +170,10 @@ public class NewGameLoader : MonoBehaviour
         this.errorText.CrossFadeAlpha(0.0f, fadoutTime, false);
     }
 
+    /// <summary>
+    ///  Set on/off the menu music
+    /// </summary>
+    /// <param name="hasFocus"></param>
     private void OnApplicationFocus(bool hasFocus)
     {
         if (!hasFocus)
@@ -148,6 +181,10 @@ public class NewGameLoader : MonoBehaviour
         this.audioSource.volume = 100f;
     }
 
+    /// <summary>
+    ///  Read the game directory and store the game information (like the name, exe path, ...)
+    ///  Then it puts the image and the name in the UI
+    /// </summary>
     private void LoadGames()
     {
         DirectoryInfo[] directoryInfo;
@@ -204,6 +241,9 @@ public class NewGameLoader : MonoBehaviour
         }
     }
 
+    /// <summary>
+    ///  Read the video directory and store all the file names of the videos
+    /// </summary>
     private void LoadVideos()
     {
         FileInfo[] directoryInfo;
@@ -221,6 +261,10 @@ public class NewGameLoader : MonoBehaviour
             this.Videos.Add(files.Name);
     }
 
+    /// <summary>
+    ///  Send a message (HTTP) to the raspberry to start or stop the timer on the display
+    /// </summary>
+    /// <param name="status">True for start the timer, False to stop</param>
     private void setTimerStatus(bool status)
     {
         string strStatus;
