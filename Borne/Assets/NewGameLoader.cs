@@ -202,24 +202,66 @@ public class NewGameLoader : MonoBehaviour
         wrGETURL.GetResponse();
     }
 
+    /// <summary>
+    ///  Read the content of the config file "App.config" and set all the app var
+    /// </summary>
     private void LoadConfigurationVar()
     {
-        string[] lines = File.ReadAllLines("./App.config"); 
-        Dictionary<string, string> dictConfig = lines.Select(l => l.Split('=')).ToDictionary(a => a[0], a => a[1]);
+        Dictionary<string, string> dictConfig;
+        try
+        {
+            string[] lines = File.ReadAllLines("./App.config");
+            dictConfig = lines.Select(l => l.Split('=')).ToDictionary(a => a[0], a => a[1]); // Put each param of file in a dictionary
+        }
+        catch
+        {
+            this.DisplayError("Fichier de config introuvable ou illisible (ER:01)", 10f);
+            return;
+        }
+
+        if (dictConfig.Values.Contains(String.Empty)) // Check that all the variables are defined in the file
+        {
+            this.DisplayError("Valeur vide dans le fichier de config (ER:02)", 10f);
+            return;
+        }
 
         GAME_DIRECTORY = dictConfig["GAME_DIRECTORY"];
 
-        RASPBERRY_ENABLED = (dictConfig["RASPBERRY_ENABLED"].ToLower() == "on" || dictConfig["RASPBERRY_ENABLED"].ToLower() == "true") ? true : false;
-        if (RASPBERRY_ENABLED)
+        TIMER_ENABLED = checkBoolConfigVar(dictConfig["TIME_LIMIT_ENABLED"]);
+        if (TIMER_ENABLED) // The time is required to use the raspberry and/or the video features
         {
-            RASPBERRY_URL = dictConfig["RASPBERRY_URL"];
-        }
+            NB_SECONDS = Convert.ToInt32(dictConfig["SECONDS"]);
 
-        VIDEO_ENABLED = (dictConfig["VIDEO_ENABLED"].ToLower() == "on" || dictConfig["VIDEO_ENABLED"].ToLower() == "true") ? true : false;
-        if (RASPBERRY_ENABLED)
-        {
-            VIDEO_DIRECTORY = dictConfig["VIDEO_DIRECTORY"];
-            VLC_EXECUTABLE_PATH = dictConfig["VLC_EXECUTABLE_PATH"];
+            RASPBERRY_ENABLED = checkBoolConfigVar(dictConfig["RASPBERRY_ENABLED"]);
+            if (RASPBERRY_ENABLED)
+            {
+                RASPBERRY_URL = dictConfig["RASPBERRY_URL"];
+            }
+
+            VIDEO_ENABLED = checkBoolConfigVar(dictConfig["VIDEO_ENABLED"]);
+            if (VIDEO_ENABLED)
+            {
+                VIDEO_DIRECTORY = dictConfig["VIDEO_DIRECTORY"];
+                VLC_EXECUTABLE_PATH = dictConfig["VLC_EXECUTABLE_PATH"];
+            }
         }
+        else
+        {
+            RASPBERRY_ENABLED = false;
+            VIDEO_ENABLED = false;
+        }
+    }
+
+    /// <summary>
+    ///  Check the input string and determine if it's mean True or False
+    /// </summary>
+    /// <param name="configString">The string retrieve in the config file</param>
+    /// <returns></returns>
+    private bool checkBoolConfigVar(string configString)
+    {
+        configString = configString.ToLower();
+        return configString == "on" ||
+            configString == "true" ||
+            configString == "1";
     }
 }
