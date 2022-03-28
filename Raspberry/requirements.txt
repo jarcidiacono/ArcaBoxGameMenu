@@ -1,0 +1,6 @@
+Adafruit_Blinka==7.1.1
+adafruit_circuitpython_ht16k33==4.3.0
+Flask==2.0.3
+mock==4.0.3
+requests==2.25.1
+simplejson==3.17.6
