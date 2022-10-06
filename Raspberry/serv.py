@@ -4,6 +4,8 @@
  # Description: Raspberry that controls a 7-segment LED display. It waits for HTTP requests to know when to start and stop the timer that appears on the display
 ##
 
+from cmath import isnan
+from posixpath import split
 from flask import Flask, Response, request
 import board
 from adafruit_ht16k33.segments import BigSeg7x4
@@ -17,9 +19,9 @@ display = BigSeg7x4(i2c, address=0x70) # DON'T FORGET to change the address, it 
 # Init Flask web server
 app = Flask(__name__)
 
-DEFAULT_TIME = [0,2,0,0] # The time allowed to each player (formats : mm:ss = [m, m, s, s]
+defaultTime = [0,2,0,0] # The time allowed to each player (formats : mm:ss = [m, m, s, s])     /!\ This is a default value! The raspberry will override the default value if another time value is received via HTTP
 
-time = Array('i', DEFAULT_TIME)
+time = Array('i', defaultTime)
 timerStatus = Value('i', 0)
 
 # Set display settings
@@ -49,25 +51,41 @@ def oneSecondLower(arrIndex):
             oneSecondLower(arrIndex-1)
 
 
-# Flask listener (use the param GET 'a' to determine the action
+# Flask listener to start and stop the timer(use the param GET 'a' to determine the action)
 @app.route('/timerStatus', methods=['GET'])
 def index():
     global timerStatus
     global time
     action = request.args.get("a").lower()
     if action == 'start':
-        time = Array('i', DEFAULT_TIME) # reset the time
+        time = Array('i', defaultTime) # reset the time
         timerStatus.value = 1 # launch the timer
         display.fill(0)
         return setResponse('ok', 200)
     elif action == 'stop':
-        time = Array('i', DEFAULT_TIME)
+        time = Array('i', defaultTime)
         timerStatus.value = 0
         display.fill(0)
         return setResponse('ok', 200)
     else:
         # error : unknow action
         return setResponse('Argument invalid', 400)
+
+# Flask listener to define how long the timer will run (use the param GET 'second')
+@app.route('/timerInterval', methods=['GET'])
+def index():
+    global defaultTime
+    seconds = request.args.get("seconds")
+    if isnan(seconds):
+        # error : number of seconds invalid
+        return setResponse('Argument invalid', 400)
+    else:
+        mm, ss = divmod(seconds, 60) # Transform seconds into minutes and seconds ( Example: 90 --> mm = 1 and ss = 30)
+        if mm > 99:
+            # Time too big
+            return setResponse('Argument invalid: number of seconds is too high', 400)
+        defaultTime = (str(mm) + str(ss)).split('') # convert mm and ss into array
+        return setResponse('ok', 200)
 
 # Parallel process of the app
 # It runs every second. It update the display if the timer is started

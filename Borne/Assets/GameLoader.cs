@@ -80,6 +80,11 @@ public class GameLoader : MonoBehaviour
             timer.Interval = (NB_SECONDS + 3) * 1000; // +3 for do the action after the "end-of-time animation" of the raspberry display
             timer.Elapsed += Timer_ElapsedEvent;
         }
+        // Send to raspberry the time that the timer will run
+        if (RASPBERRY_ENABLED)
+        {
+            setRaspberryTimerInterval();
+        }
     }
 
     /// <summary>
@@ -103,7 +108,7 @@ public class GameLoader : MonoBehaviour
         {
             currentGameApp = null; //
             if (RASPBERRY_ENABLED)
-                setTimerStatus(false); // Send a stop request to the raspberry display
+                setRaspberryTimerStatus(false); // Send a stop request to the raspberry display
             if (TIMER_ENABLED)
                 timer.Stop();
 
@@ -146,7 +151,7 @@ public class GameLoader : MonoBehaviour
                     if (TIMER_ENABLED)
                         timer.Start();
                     if (RASPBERRY_ENABLED)
-                        setTimerStatus(true);
+                        setRaspberryTimerStatus(true);
                 }
             }
             else
@@ -267,7 +272,7 @@ public class GameLoader : MonoBehaviour
     ///  Send a message (HTTP) to the raspberry to start or stop the timer on the display
     /// </summary>
     /// <param name="status">True for start the timer, False to stop</param>
-    private void setTimerStatus(bool status)
+    private void setRaspberryTimerStatus(bool status)
     {
         string strStatus;
         if (status)
@@ -277,6 +282,23 @@ public class GameLoader : MonoBehaviour
 
         WebRequest wrGETURL;
         wrGETURL = WebRequest.Create(RASPBERRY_URL + "/timerStatus?a=" + strStatus);
+        try
+        {
+            wrGETURL.GetResponse();
+        }
+        catch
+        {
+            this.DisplayError("Communication avec le timer distant impossible (ER:08)", 3f);
+        }
+    }
+
+    /// <summary>
+    ///  Send a message (HTTP) to the raspberry to tell it how long the timer should be running
+    /// </summary>
+    private void setRaspberryTimerInterval()
+    {
+        WebRequest wrGETURL;
+        wrGETURL = WebRequest.Create(RASPBERRY_URL + "/timerInterval?seconds=" + NB_SECONDS);
         try
         {
             wrGETURL.GetResponse();
