@@ -4,3 +4,4 @@ Flask==2.0.3
 mock==4.0.3
 requests==2.25.1
 simplejson==3.17.6
+board==1.0

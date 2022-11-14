@@ -281,7 +281,7 @@ public class GameLoader : MonoBehaviour
             strStatus = "stop";
 
         WebRequest wrGETURL;
-        wrGETURL = WebRequest.Create(RASPBERRY_URL + "/timerStatus?a=" + strStatus);
+        wrGETURL = WebRequest.Create(RASPBERRY_URL + "/timerStatus?a=" + strStatus + "&seconds=" + NB_SECONDS);
         try
         {
             wrGETURL.GetResponse();
